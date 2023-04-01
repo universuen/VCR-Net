@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import torch
+
 from typing import Type
 import logging
 from pathlib import Path
@@ -9,24 +11,7 @@ Attention: To guarantee the code's low-coupling and reusability,
 please do not import this module in any `src` modules except `api`.
 """
 
-# registry = dict()
-
-# def _get_pure_vars(obj):
-#     result = dict()
-#     for k, v in vars(obj).items():
-#         if k[0] == '_':
-#             continue
-#         if k in registry.keys():
-#             result[k] = registry[k]
-#             del registry[k]
-#         else:
-#             result[k] = v
-#     return result
-
-# def _registered_config(ConfigClass):
-#     registry[ConfigClass.__name__] = _get_pure_vars(ConfigClass)
-#     return ConfigClass
-
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 class _Config:
@@ -50,6 +35,7 @@ class Paths(_Config):
     scripts: Path = project / 'scripts'
     tests: Path = project / 'tests'
     logs: Path = data / 'logs'
+    training_set: Path = data / 'tr_dataset'
 
     # create path if not exists
     for i in list(vars().values()):
@@ -59,6 +45,18 @@ class Paths(_Config):
 
 class Logger(_Config):
     level = logging.INFO
+
+
+class VAE(_Config):
+    latent_dim = 2048
+
+
+class Training(_Config):
+    alpha: float = 1
+    beta: float = 0.1
+    epochs: int = 100
+    batch_size: int = 256
+    learning_rate: float = 1e-3
 
 
 _all_items = vars().values()
