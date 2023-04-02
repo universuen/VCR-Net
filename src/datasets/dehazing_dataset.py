@@ -1,20 +1,34 @@
 import random
+import csv
+from pathlib import Path
+
 from torch.utils.data import Dataset
 from PIL import Image
 
-from src.config import Paths
-
 
 class DehazingDataset(Dataset):
-    def __init__(self, metadata, transform=None):
-        self.metadata = metadata
+    def __init__(self, path: Path, transform=None):
+        self.path = path
+        self.metadata = []
+        with open(path / 'metadata.csv', mode='r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                hazy_image_paths = row['hazy_image_paths'].strip('[]').split(', ')
+                hazy_image_paths = [path.strip("'") for path in hazy_image_paths]
+                self.metadata.append(
+                    {
+                        'image_id': int(row['image_id']),
+                        'clear_image_path': row['clear_image_path'],
+                        'hazy_image_paths': hazy_image_paths
+                    }
+                )
         self.transform = transform
 
     def __len__(self):
         return len(self.metadata)
 
     def __getitem__(self, idx):
-        clear_img_path = Paths.training_set / self.metadata[idx]['clear_image_path']
+        clear_img_path = self.path / self.metadata[idx]['clear_image_path']
         hazy_img_paths = self.metadata[idx]['hazy_image_paths']
 
         # Load the clear image
@@ -22,7 +36,7 @@ class DehazingDataset(Dataset):
 
         # Load the hazy image
         hazy_img = Image.open(
-            Paths.training_set / random.choice(hazy_img_paths)
+            self.path / random.choice(hazy_img_paths)
         ).convert('RGB')
 
         if self.transform is not None:

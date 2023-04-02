@@ -7,13 +7,13 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.conv_layers = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1),
-            nn.ReLU()
+            nn.LeakyReLU(0.2)
         )
         self.fc_mu = nn.Linear(256 * 4 * 4, latent_dim)
         self.fc_log_var = nn.Linear(256 * 4 * 4, latent_dim)
@@ -32,13 +32,13 @@ class Decoder(nn.Module):
         self.fc = nn.Linear(latent_dim, 256 * 4 * 4)
         self.deconv_layers = nn.Sequential(
             nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1),
-            nn.Sigmoid()
+            nn.Tanh(),
         )
 
     def forward(self, x):

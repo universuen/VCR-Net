@@ -36,7 +36,8 @@ class Paths(_Config):
     tests: Path = project / 'tests'
     logs: Path = data / 'logs'
     training_set: Path = data / 'tr_dataset'
-
+    test_set: Path = data / 'te_dataset'
+    test_results: Path = data / 'test_results'
     # create path if not exists
     for i in list(vars().values()):
         if isinstance(i, Path):
@@ -48,14 +49,14 @@ class Logger(_Config):
 
 
 class VAE(_Config):
-    latent_dim = 2048
+    latent_dim = 1024
 
 
 class Training(_Config):
-    alpha: float = 1
+    alpha: float = 0.1
     beta: float = 0.1
     epochs: int = 100
-    batch_size: int = 256
+    batch_size: int = 64
     learning_rate: float = 1e-3
 
 
