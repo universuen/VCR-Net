@@ -15,6 +15,16 @@ from src import api, config, datasets
 
 logger = api.get_logger('train_script')
 
+# MRF energy function
+def mrf_energy(hazy_image, dehazed_image, alpha=1.0):
+    hazy_grad_x = torch.abs(hazy_image[:, :, :-1, :] - hazy_image[:, :, 1:, :])
+    hazy_grad_y = torch.abs(hazy_image[:, :, :, :-1] - hazy_image[:, :, :, 1:])
+    
+    dehazed_grad_x = torch.abs(dehazed_image[:, :, :-1, :] - dehazed_image[:, :, 1:, :])
+    dehazed_grad_y = torch.abs(dehazed_image[:, :, :, :-1] - dehazed_image[:, :, :, 1:])
+    
+    energy = torch.sum(torch.abs(hazy_grad_x - dehazed_grad_x)) + torch.sum(torch.abs(hazy_grad_y - dehazed_grad_y))
+    return alpha * energy
 
 def denormalize(tensor, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
     for t, m, s in zip(tensor, mean, std):
@@ -35,7 +45,12 @@ tr_dataset = datasets.DehazingDataset(
     transform=preprocess,
 )
 
-te_dataset = datasets.TestDataset(
+# te_dataset = datasets.TestDataset(
+#     path=config.Paths.test_set,
+#     transform=preprocess,
+# )
+
+te_dataset = datasets.DehazingDataset(
     path=config.Paths.test_set,
     transform=preprocess,
 )
@@ -68,6 +83,7 @@ for e in range(config.Training.epochs):
         x, mu, log_var = vae(hazy_imgs)
         dehazed_imgs = x + hazy_imgs
         reconstruct_loss = nn.functional.mse_loss(dehazed_imgs, clear_imgs)
+        energy_mrf = mrf_energy(hazy_imgs, dehazed_imgs, alpha=0.1)
         kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
         r_clear = feature_extractor(clear_imgs)
         r_pred = feature_extractor(dehazed_imgs)
@@ -76,7 +92,8 @@ for e in range(config.Training.epochs):
             torch.cosine_similarity(r_pred, r_hazy) - torch.cosine_similarity(r_pred, r_clear),
             dim=0,
         )
-        loss = reconstruct_loss + config.Training.beta * kl_divergence + config.Training.alpha * contrastive_loss
+        # import ipdb; ipdb.set_trace()
+        loss = reconstruct_loss + config.Training.beta * kl_divergence + config.Training.alpha * contrastive_loss+ config.Training.gama * energy_mrf
         loss.backward()
         optimizer.step()
         avg_loss += loss.item()
@@ -89,7 +106,8 @@ for e in range(config.Training.epochs):
     with torch.no_grad():
         vae.eval()
         test_imgs = random.choices(te_dataset, k=3)
-        for idx, img in enumerate(test_imgs):
+        for idx, (clear_imgs, hazy_imgs) in enumerate(test_imgs):
+            img = hazy_imgs
             dehazed_img = torch.squeeze(
                 vae(
                     torch.unsqueeze(img, 0).to(config.device)
@@ -99,4 +117,6 @@ for e in range(config.Training.epochs):
                 save_image(denormalize(img), f)
             with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_dehazed.png', 'wb') as f:
                 save_image(denormalize(dehazed_img), f)
+            with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_clear.png', 'wb') as f:
+                save_image(denormalize(clear_imgs), f)
         vae.train()
