@@ -11,7 +11,7 @@ from torchvision.models import vgg19, VGG19_Weights
 from torch import nn
 from torchvision.utils import save_image
 
-from src import api, config, DehazingDataset
+from src import api, config, DehazingDataset, models
 
 logger = api.get_logger('train_script')
 
@@ -57,7 +57,7 @@ te_dataset = DehazingDataset(
     transform=preprocess,
 )
 
-vae = api.get_vae()
+vae = models.Autoencoder().to(config.device)
 vgg = vgg19(weights=VGG19_Weights.IMAGENET1K_V1)
 feature_extractor = nn.Sequential(
     nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
@@ -82,11 +82,11 @@ for e in range(config.Training.epochs):
         optimizer.zero_grad()
         clear_imgs = clear_imgs.to(config.device)
         hazy_imgs = hazy_imgs.to(config.device)
-        x, mu, log_var = vae(hazy_imgs)
+        x = vae(hazy_imgs)
         dehazed_imgs = x + hazy_imgs
         reconstruct_loss = nn.functional.mse_loss(dehazed_imgs, clear_imgs)
         energy_mrf = mrf_energy(hazy_imgs, dehazed_imgs, alpha=0.1)
-        kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+
         r_clear = feature_extractor(clear_imgs)
         r_pred = feature_extractor(dehazed_imgs)
         r_hazy = feature_extractor(hazy_imgs)
@@ -95,7 +95,7 @@ for e in range(config.Training.epochs):
             dim=0,
         )
         # import ipdb; ipdb.set_trace()
-        loss = reconstruct_loss + config.Training.beta * kl_divergence + config.Training.alpha * contrastive_loss + config.Training.gama * energy_mrf
+        loss = reconstruct_loss + config.Training.alpha * contrastive_loss + config.Training.gama * energy_mrf
         loss.backward()
         optimizer.step()
         avg_loss += loss.item()
