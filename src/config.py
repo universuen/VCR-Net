@@ -35,8 +35,8 @@ class Paths(_Config):
     scripts: Path = project / 'scripts'
     tests: Path = project / 'tests'
     logs: Path = data / 'logs'
-    training_set: Path = data / 'tr_dataset'
-    test_set: Path = data / 'te_dataset'
+    training_set: Path = data / 'train'
+    test_set: Path = data / 'test'
     test_results: Path = data / 'test_results'
     # create path if not exists
     for i in list(vars().values()):
@@ -54,11 +54,13 @@ class VAE(_Config):
 
 class Training(_Config):
     alpha: float = 0.1
-    beta: float = 0.1
-    gama: float = 0.0001
+    beta: float = 0.01
+    gama: float = 0
     epochs: int = 1000
-    batch_size: int = 32
-    learning_rate: float = 1e-3
+    batch_size: int = 40
+    vae_learning_rate: float = 1e-3
+    ae_learning_rate: float = 1e-3
+    epsilon_learning_rate: float = 1e-1
 
 
 _all_items = vars().values()
