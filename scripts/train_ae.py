@@ -103,22 +103,23 @@ for e in range(config.Training.epochs):
     logger.info(f'epoch: {e + 1}: avg_loss: {avg_loss}')
 
     # test
-    if not os.path.exists(config.Paths.test_results / f'e{e + 1}'):
-        os.mkdir(config.Paths.test_results / f'e{e + 1}')
-    with torch.no_grad():
-        vae.eval()
-        test_imgs = random.choices(te_dataset, k=3)
-        for idx, (clear_imgs, hazy_imgs) in enumerate(test_imgs):
-            img = hazy_imgs
-            dehazed_img = torch.squeeze(
-                vae(
-                    torch.unsqueeze(img, 0).to(config.device)
-                )[0] + img.to(config.device)
-            ).detach().cpu()
-            with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_original.png', 'wb') as f:
-                save_image(denormalize(img), f)
-            with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_dehazed.png', 'wb') as f:
-                save_image(denormalize(dehazed_img), f)
-            with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_clear.png', 'wb') as f:
-                save_image(denormalize(clear_imgs), f)
-        vae.train()
+    if (e + 1) % 10 == 0:
+        if not os.path.exists(config.Paths.test_results / f'e{e + 1}'):
+            os.mkdir(config.Paths.test_results / f'e{e + 1}')
+        with torch.no_grad():
+            vae.eval()
+            test_imgs = random.choices(te_dataset, k=3)
+            for idx, (clear_imgs, hazy_imgs) in enumerate(test_imgs):
+                img = hazy_imgs
+                dehazed_img = torch.squeeze(
+                    vae(
+                        torch.unsqueeze(img, 0).to(config.device)
+                    )[0] + img.to(config.device)
+                ).detach().cpu()
+                with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_original.png', 'wb') as f:
+                    save_image(denormalize(img), f)
+                with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_dehazed.png', 'wb') as f:
+                    save_image(denormalize(dehazed_img), f)
+                with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_clear.png', 'wb') as f:
+                    save_image(denormalize(clear_imgs), f)
+            vae.train()

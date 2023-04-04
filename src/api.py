@@ -11,6 +11,4 @@ def get_logger(name: str) -> types.Logger:
 
 
 def get_vae() -> types.VAE:
-    return src.models.VAE(config.VAE.latent_dim).to(config.device)
-
-
+    return src.models.VAE(1024).to(config.device)

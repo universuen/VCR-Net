@@ -49,7 +49,7 @@ class Logger(_Config):
 
 
 class VAE(_Config):
-    latent_dim = 1024
+    latent_dim = 128
 
 
 class Training(_Config):
