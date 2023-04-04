@@ -79,7 +79,6 @@ for e in range(config.Training.epochs):
 
         clear_imgs = clear_imgs.to(config.device)
         hazy_imgs = hazy_imgs.to(config.device)
-        x = ae(hazy_imgs)
         x_1, mu, log_var = vae(hazy_imgs)
         x_2 = ae(hazy_imgs)
         x = epsilon * x_1 + x_2
