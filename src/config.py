@@ -35,8 +35,8 @@ class Paths(_Config):
     scripts: Path = project / 'scripts'
     tests: Path = project / 'tests'
     logs: Path = data / 'logs'
-    training_set: Path = data / 'train'
-    test_set: Path = data / 'test'
+    training_set: Path = data / 'tr_dataset'
+    test_set: Path = data / 'te_dataset'
     test_results: Path = data / 'test_results'
     # create path if not exists
     for i in list(vars().values()):
