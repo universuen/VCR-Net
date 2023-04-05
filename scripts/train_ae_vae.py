@@ -2,6 +2,7 @@ import context
 
 import os
 import random
+import numpy as np
 
 import torch
 import torch.optim as optim
@@ -11,7 +12,7 @@ from torchvision.models import vgg19, VGG19_Weights
 from torch import nn
 from torchvision.utils import save_image
 
-from src import api, config, DehazingDataset, models
+from src import api, config, DehazingDataset, models, metrics
 
 logger = api.get_logger('train_script')
 
@@ -68,6 +69,11 @@ tr_dataloader = DataLoader(
     batch_size=config.Training.batch_size,
     shuffle=True,
 )
+te_dataloader = DataLoader(
+    dataset=te_dataset,
+    batch_size=1,
+    shuffle=False,
+)
 
 for e in range(config.Training.epochs):
     avg_recon_loss = 0
@@ -106,23 +112,52 @@ for e in range(config.Training.epochs):
     avg_contra_loss /= len(tr_dataloader)
     logger.info(
         f'epoch: {e + 1}: '
-        f'avg_recon_loss: {avg_recon_loss}, '
-        f'avg_contra_loss: {avg_contra_loss}, '
+        f'avg_recon_loss: {avg_recon_loss:.4f}, '
+        f'avg_contra_loss: {avg_contra_loss:.4f}, '
     )
 
-    # test
-    if (e + 1) % 10 == 0:
-        if not os.path.exists(config.Paths.test_results / f'e{e + 1}'):
-            os.mkdir(config.Paths.test_results / f'e{e + 1}')
-        with torch.no_grad():
+    ### Evaluate and Generate the vis results
+    psnr_values = []
+    ssim_values = []
+    with torch.no_grad():
+        if (e + 1) % 10 == 0:
             ae.eval()
+            vae.eval()
+            # epsilon.eval()
+            for idx, (clear_imgs, hazy_imgs) in enumerate(te_dataloader):
+                clear_imgs = clear_imgs.to(config.device)
+                hazy_imgs = hazy_imgs.to(config.device)
+                x_1, mu, log_var = vae(hazy_imgs)
+                x_2 = ae(hazy_imgs)
+                x = epsilon * x_1 + x_2
+                dehazed_imgs = x + hazy_imgs              
+                # Gen eval results
+                psnr = metrics.psnr(dehazed_imgs, clear_imgs)
+                ssim = metrics.ssim(dehazed_imgs, clear_imgs).item()
+                psnr_values.append(psnr)
+                ssim_values.append(ssim)
+                # import ipdb; ipdb.set_trace()
+            avg_psnr = np.mean(psnr_values)
+            avg_ssim = np.mean(ssim_values)
+
+            # print(f'Average PSNR: {avg_psnr:.4f}\t', f'Average SSIM: {avg_ssim:.4f}')
+
+            logger.info(
+                f'epoch: {e + 1}: '
+                f'Average PSNR: {avg_psnr:.4f}, '
+                f'Average SSIM: {avg_ssim:.4f}, '
+    )
+
+        ### Random select image to generate visilization results    
+        if (e + 1) % 30 == 0:
+            if not os.path.exists(config.Paths.test_results / f'e{e + 1}'):
+                os.mkdir(config.Paths.test_results / f'e{e + 1}')
             test_imgs = random.choices(te_dataset, k=3)
             for idx, (clear_imgs, hazy_imgs) in enumerate(test_imgs):
                 img = hazy_imgs
                 dehazed_img = torch.squeeze(
-                    ae(
-                        torch.unsqueeze(img, 0).to(config.device)
-                    )[0] + img.to(config.device)
+                    epsilon* vae(torch.unsqueeze(img, 0).to(config.device))[0] + \
+                    ae(torch.unsqueeze(img, 0).to(config.device))[0] +img.to(config.device)
                 ).detach().cpu()
                 with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_hazy.png', 'wb') as f:
                     save_image(denormalize(img), f)
@@ -131,3 +166,5 @@ for e in range(config.Training.epochs):
                 with open(config.Paths.test_results / f'e{e + 1}' / f'{idx}_clear.png', 'wb') as f:
                     save_image(denormalize(clear_imgs), f)
             ae.train()
+            vae.train()
+            # epsilon.train()

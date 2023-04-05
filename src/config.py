@@ -57,7 +57,7 @@ class Training(_Config):
     beta: float = 0.01
     gama: float = 0
     epochs: int = 1000
-    batch_size: int = 40
+    batch_size: int = 64
     vae_learning_rate: float = 1e-3
     ae_learning_rate: float = 1e-3
     epsilon_learning_rate: float = 1e-1
