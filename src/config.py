@@ -49,18 +49,18 @@ class Logger(_Config):
 
 
 class VAE(_Config):
-    latent_dim = 128
+    latent_dim = 1024
 
 
 class Training(_Config):
     alpha: float = 0.1
     beta: float = 0.01
-    gama: float = 0
+    gamma: float = 0
     epochs: int = 1000
-    batch_size: int = 64
-    vae_learning_rate: float = 1e-3
-    ae_learning_rate: float = 1e-3
-    epsilon_learning_rate: float = 1e-1
+    batch_size: int = 2
+    vae_learning_rate: float = 1e-4 #1e-3
+    ae_learning_rate: float = 1e-4 #1e-3
+    epsilon_learning_rate: float = 1e-4 #1e-3
 
 
 _all_items = vars().values()
